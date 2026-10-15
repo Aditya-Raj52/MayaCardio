@@ -1,0 +1,28 @@
+
+
+services:
+  # The official mock service provided by the assessment judges
+  mock-server:
+    image: ghcr.io/your-mock-repo/biosignal-mock:latest # Or replace with your local mock binary container path
+    container_name: biosignal_mock
+    command: ["--mode", "signal", "--seed", "7", "--duration", "3600", "--port", "7100"]
+    ports:
+      - "7100:7100"
+    restart: always
+
+  # Your custom edge pipeline container
+  pipeline:
+    build: .
+    container_name: edge_pipeline
+    depends_on:
+      - mock-server
+    environment:
+      - MOCK_HOST=mock-server
+      - MOCK_PORT=7100
+    volumes:
+      - pipeline_data:/app  # Persists SQLite database across container restarts/power pulls
+    command: ["python", "ingestion.py"] # Runs the continuous ingestion loop
+    restart: always
+
+volumes:
+  pipeline_data:
